@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// --- CORE KANBAN MODELS ---
+
+model Person {
+  id           Int        @id @default(autoincrement())
+  name         String
+  role         String
+  ha_entity_id String?
+  contact_id   String?
+  guest_token  String?    @unique
+  acl          Json?
+  tasks        Task[]
+  schedules    Schedule[]
+}
+
+model Schedule {
+  id          Int      @id @default(autoincrement())
+  person_id   Int
+  person      Person   @relation(fields: [person_id], references: [id])
+  day_of_week Int      // 0-6 (Sunday-Saturday)
+  start_time  String   // HH:mm
+  end_time    String   // HH:mm
+}
+
+model Task {
+  id                Int      @id @default(autoincrement())
+  title             String
+  description       String?  @db.Text
+  column            String   // Today, Tomorrow, Soon, Done
+  assigned_to_id    Int?
+  assigned_to       Person?  @relation(fields: [assigned_to_id], references: [id])
+  energy_tag        String?  // Red, Green, Yellow
+  prep_tasks        Json?
+  travel_time_alert Boolean  @default(false)
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// --- APPROVAL CALENDAR MODELS (THE GHOST LAYER) ---
+
+model RawCalendarEvent {
+  id            String   @id // Google Event ID
+  calendar_name String   // e.g., 'Michael van Esch', 'Justin Thuis', 'Adriana '
+  summary       String
+  start_time    DateTime
+  end_time      DateTime
+  full_json     Json     // Complete Google object
+  createdAt     DateTime @default(now())
+}
+
+model ReconciliationProposal {
+  id                 Int      @id @default(autoincrement())
+  event_id           String   // Reference to RawCalendarEvent
+  proposed_action    String   // KEEP, UPDATE, DELETE
+  proposed_start     DateTime?
+  proposed_end       DateTime?
+  change_description String   @db.Text
+  reason             String?  @db.Text
+  status             String   @default("PENDING") // PENDING, APPROVED, REJECTED, COMMITTED
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
