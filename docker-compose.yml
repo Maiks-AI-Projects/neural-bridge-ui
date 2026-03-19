@@ -1,0 +1,23 @@
+services:
+  bridge-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bridge-ui
+    restart: always
+    networks:
+      br187:
+        ipv4_address: 192.168.187.13
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - TZ=Europe/Amsterdam
+    # Use dev mode for instant updates
+    command: npm run dev
+
+networks:
+  br187:
+    external: true
