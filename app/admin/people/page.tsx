@@ -23,6 +23,12 @@ export default async function PeopleAdminPage() {
         </div>
         <div className="flex gap-6">
           <Link 
+            href="/admin/knowledge" 
+            className="text-emerald-500 hover:text-emerald-400 font-bold text-sm uppercase tracking-wider transition-colors"
+          >
+            Knowledgebase
+          </Link>
+          <Link 
             href="/admin/recurring" 
             className="text-zinc-400 hover:text-white font-bold text-sm uppercase tracking-wider transition-colors"
           >

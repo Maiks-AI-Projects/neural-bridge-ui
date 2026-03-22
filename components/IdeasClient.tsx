@@ -121,10 +121,10 @@ function IdeasContent({ initialIdeas }: IdeasClientProps) {
       </header>
 
       {/* Kanban Board */}
-      <main className="flex-1 p-6 overflow-x-auto">
-        <div className="flex gap-6 h-full items-start min-w-max">
+      <main className="flex-1 p-4 md:p-6 overflow-x-auto snap-x snap-mandatory">
+        <div className="flex gap-4 md:gap-6 h-full items-start">
           {statuses.map(status => (
-            <div key={status} className="w-96 bg-zinc-900/50 rounded-2xl flex flex-col border border-zinc-800 h-full max-h-[85vh]">
+            <div key={status} className="w-[85vw] md:w-96 flex-shrink-0 snap-center bg-zinc-900/50 rounded-2xl flex flex-col border border-zinc-800 h-full max-h-[85vh]">
               <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900 rounded-t-2xl">
                 <h2 className="font-bold text-lg text-zinc-200">{status}</h2>
                 <span className="bg-zinc-800 text-zinc-400 text-xs px-2 py-1 rounded-full">

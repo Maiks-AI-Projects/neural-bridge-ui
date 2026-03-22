@@ -447,3 +447,45 @@ export async function commitChanges() {
     return { success: false, error: "Failed to reach backend commit endpoint" };
   }
 }
+
+// --- KNOWLEDGE ACTIONS ---
+
+export async function getKnowledgeEntries() {
+  return await prisma.knowledgeEntry.findMany({
+    orderBy: {
+      created_at: "desc",
+    },
+  });
+}
+
+export async function addKnowledgeEntry(data: {
+  topic: string;
+  content: string;
+  source?: string;
+  verified?: boolean;
+}) {
+  await prisma.knowledgeEntry.create({
+    data,
+  });
+  revalidatePath("/admin/knowledge");
+}
+
+export async function updateKnowledgeEntry(id: string, data: {
+  topic?: string;
+  content?: string;
+  source?: string;
+  verified?: boolean;
+}) {
+  await prisma.knowledgeEntry.update({
+    where: { id },
+    data,
+  });
+  revalidatePath("/admin/knowledge");
+}
+
+export async function deleteKnowledgeEntry(id: string) {
+  await prisma.knowledgeEntry.delete({
+    where: { id },
+  });
+  revalidatePath("/admin/knowledge");
+}

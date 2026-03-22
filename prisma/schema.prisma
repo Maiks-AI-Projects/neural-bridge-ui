@@ -13,8 +13,10 @@ model Person {
   ha_entity_id String?
   contact_id   String?
   guest_token  String?    @unique
+  login_token  String?    @unique
+  pin_code     String?    @default("1234")
   acl          String?    @db.LongText
-  bedtime      String?    // e.g., "20:00"
+  bedtime      String?
   schedules    Schedule[]
   tasks        Task[]
 }
@@ -31,36 +33,36 @@ model Schedule {
 }
 
 model Task {
-  id                Int       @id @default(autoincrement())
-  title             String
-  description       String?   @db.Text
-  column            String
-  assigned_to_id    Int?
-  energy_tag        String?
+  id                 Int       @id @default(autoincrement())
+  title              String
+  description        String?   @db.Text
+  column             String
+  assigned_to_id     Int?
+  energy_tag         String?
   prep_tasks         String?   @db.LongText
   travel_time_alert  Boolean   @default(false)
-  estimated_duration Int?      // in minutes
+  metadata           String?   @db.LongText
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   deadline           DateTime?
-  is_flexible       Boolean   @default(true)
-  metadata          String?   @db.LongText
-  deletedAt         DateTime?
-  deletionReason    String?   @db.Text
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  assigned_to       Person?   @relation(fields: [assigned_to_id], references: [id])
-
-  depends_on_id     Int?
-  parent_task       Task?     @relation("TaskDependencies", fields: [depends_on_id], references: [id])
-  dependent_tasks   Task[]    @relation("TaskDependencies")
+  is_flexible        Boolean   @default(true)
+  deletedAt          DateTime?
+  deletionReason     String?   @db.Text
+  estimated_duration Int?
+  depends_on_id      Int?
+  assigned_to        Person?   @relation(fields: [assigned_to_id], references: [id])
+  parent_task        Task?     @relation("TaskDependencies", fields: [depends_on_id], references: [id])
+  dependent_tasks    Task[]    @relation("TaskDependencies")
 
   @@index([assigned_to_id], map: "Task_assigned_to_id_fkey")
+  @@index([depends_on_id], map: "Task_depends_on_id_fkey")
 }
 
 model UserContext {
   id             Int      @id @default(autoincrement())
-  key            String   @unique // e.g., 'primary_user'
+  key            String   @unique
   is_son_present Boolean  @default(false)
-  current_energy Int      @default(5) // 1-10
+  current_energy Int      @default(5)
   last_updated   DateTime @default(now()) @updatedAt
 }
 
@@ -493,6 +495,97 @@ model google_tokens {
   created_at    DateTime? @default(now()) @db.Timestamp(0)
 }
 
+model NotificationQueue {
+  id        Int      @id @default(autoincrement())
+  source    String
+  content   String   @db.Text
+  status    String   @default("'pending'")
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+
+  @@map("notification_queue")
+}
+
+model RecurringTask {
+  id                 Int             @id @default(autoincrement())
+  title              String
+  description        String?
+  frequency          String
+  assignee_id        Int?
+  energy_cost        String
+  estimated_duration Int
+  next_run_at        DateTime
+  last_run_at        DateTime?
+  is_active          Boolean         @default(true)
+  depends_on_id      Int?
+  starting_date      DateTime        @default(now())
+  parent_task        RecurringTask?  @relation("RecurringTaskDependencies", fields: [depends_on_id], references: [id])
+  dependent_tasks    RecurringTask[] @relation("RecurringTaskDependencies")
+
+  @@index([depends_on_id], map: "RecurringTask_depends_on_id_fkey")
+}
+
+model SchoolEventMap {
+  id        Int      @id @default(autoincrement())
+  title     String   @unique
+  category  String
+  ai_reason String?  @db.Text
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("school_event_map")
+}
+
+model Voice_Session {
+  id              String               @id @default(uuid())
+  start_time      DateTime             @default(now())
+  end_time        DateTime?
+  full_transcript String               @db.Text
+  inferred_mood   String
+  energy_level    Int
+  raw_audio_path  String?
+  ideas           Idea_Session_Pivot[]
+}
+
+model Idea {
+  id         String               @id @default(uuid())
+  name       String
+  base_idea  String               @db.Text
+  markdown   String               @db.Text
+  status     String
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
+  sessions   Idea_Session_Pivot[]
+}
+
+model Idea_Session_Pivot {
+  idea_id    String
+  session_id String
+  idea       Idea          @relation(fields: [idea_id], references: [id], onDelete: Cascade)
+  session    Voice_Session @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  @@id([idea_id, session_id])
+  @@index([session_id], map: "Idea_Session_Pivot_session_id_fkey")
+}
+
+model KnowledgeEntry {
+  id         String   @id @default(uuid())
+  topic      String
+  content    String   @db.Text
+  source     String?
+  verified   Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("knowledge_entries")
+}
+
+model ContactBackup {
+  id          Int      @id @default(autoincrement())
+  snapshot    String   @db.LongText
+  created_at  DateTime @default(now())
+
+  @@map("contact_backups")
+}
+
 enum Instance_connectionStatus {
   open
   close
@@ -563,73 +656,4 @@ enum OpenaiBot_triggerOperator {
   startsWith
   endsWith
   regex
-}
-
-model NotificationQueue {
-  id        Int      @id @default(autoincrement())
-  source    String   // 'WHATSAPP' | 'GMAIL'
-  content   String   @db.Text
-  status    String   @default("pending") // 'pending' | 'processed'
-  createdAt DateTime @default(now()) @db.Timestamp(0)
-
-  @@map("notification_queue")
-}
-
-model RecurringTask {
-  id           Int      @id @default(autoincrement())
-  title        String
-  description  String?
-  frequency    String   // e.g., "Daily", "Weekly", "Cron: 0 8 * * *"
-  starting_date DateTime @default(now())
-  assignee_id  Int?     // Links to Helper/User
-  energy_cost  String   // "High", "Medium", "Low"
-  estimated_duration Int // in minutes
-  next_run_at  DateTime
-  last_run_at  DateTime?
-  is_active    Boolean  @default(true)
-
-  depends_on_id     Int?
-  parent_task       RecurringTask? @relation("RecurringTaskDependencies", fields: [depends_on_id], references: [id])
-  dependent_tasks   RecurringTask[] @relation("RecurringTaskDependencies")
-}
-
-model SchoolEventMap {
-  id        Int      @id @default(autoincrement())
-  title     String   @unique
-  category  String   // 'IMPACTING' | 'INFORMATIONAL' | 'UNKNOWN'
-  ai_reason String?  @db.Text
-  updatedAt DateTime @updatedAt @default(now())
-
-  @@map("school_event_map")
-}
-
-model Voice_Session {
-  id              String               @id @default(uuid())
-  start_time      DateTime             @default(now())
-  end_time        DateTime?
-  full_transcript String               @db.Text
-  inferred_mood   String
-  energy_level    Int
-  raw_audio_path  String?
-  ideas           Idea_Session_Pivot[]
-}
-
-model Idea {
-  id         String               @id @default(uuid())
-  name       String
-  base_idea  String               @db.Text
-  markdown   String               @db.Text
-  status     String               // e.g., "Draft", "Actionable", "Archived"
-  created_at DateTime             @default(now())
-  updated_at DateTime             @updatedAt
-  sessions   Idea_Session_Pivot[]
-}
-
-model Idea_Session_Pivot {
-  idea_id    String
-  session_id String
-  idea       Idea          @relation(fields: [idea_id], references: [id], onDelete: Cascade)
-  session    Voice_Session @relation(fields: [session_id], references: [id], onDelete: Cascade)
-
-  @@id([idea_id, session_id])
 }

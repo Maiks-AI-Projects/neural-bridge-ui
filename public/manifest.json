@@ -1,0 +1,20 @@
+{
+  "name": "Neural Bridge",
+  "short_name": "Bridge",
+  "display": "standalone",
+  "start_url": "/app",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/window.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/window.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

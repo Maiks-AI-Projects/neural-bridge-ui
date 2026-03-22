@@ -22,13 +22,21 @@ export default async function RecurringAdminPage() {
             Template Management & Automation
           </p>
         </div>
-        <Link 
-          href="/admin/people" 
-          className="flex items-center gap-2 text-zinc-500 hover:text-white font-black uppercase tracking-widest text-xs transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to People
-        </Link>
+        <div className="flex gap-6 items-center">
+          <Link 
+            href="/admin/knowledge" 
+            className="text-emerald-500 hover:text-emerald-400 font-bold text-sm uppercase tracking-wider transition-colors"
+          >
+            Knowledgebase
+          </Link>
+          <Link 
+            href="/admin/people" 
+            className="flex items-center gap-2 text-zinc-500 hover:text-white font-black uppercase tracking-widest text-xs transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to People
+          </Link>
+        </div>
       </header>
 
       <main>
