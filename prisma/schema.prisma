@@ -9,7 +9,7 @@ datasource db {
 model Person {
   id           Int        @id @default(autoincrement())
   name         String
-  role         String
+  role         String     @default("USER") // USER, MANAGER (Mother), ADMIN
   ha_entity_id String?
   contact_id   String?
   guest_token  String?    @unique
@@ -19,6 +19,88 @@ model Person {
   bedtime      String?
   schedules    Schedule[]
   tasks        Task[]
+  accounts     FinancialAccount[]
+  memories     YasminMemory[]
+}
+
+model FinancialAccount {
+  id            Int           @id @default(autoincrement())
+  person_id     Int
+  name          String
+  iban_hash     String?       @db.VarChar(255)
+  balance       Decimal       @default(0.00) @db.Decimal(10, 2)
+  currency      String        @default("EUR")
+  type          String        @default("CHECKING") // CHECKING, SAVINGS
+  person        Person        @relation(fields: [person_id], references: [id])
+  pots          FinancialPot[]
+  transactions  FinancialTransaction[]
+
+  @@index([person_id])
+}
+
+model FinancialPot {
+  id              Int           @id @default(autoincrement())
+  account_id      Int
+  name            String
+  target_amount   Decimal?      @db.Decimal(10, 2)
+  current_balance Decimal       @default(0.00) @db.Decimal(10, 2)
+  category        String        // RENT, GROCERIES, UTILITIES, SAVINGS, etc.
+  is_locked       Boolean       @default(false)
+  account         FinancialAccount @relation(fields: [account_id], references: [id])
+  transactions    FinancialTransaction[]
+  rules           FinancialRule[]
+
+  @@index([account_id])
+}
+
+model FinancialTransaction {
+  id          Int               @id @default(autoincrement())
+  account_id  Int
+  pot_id      Int?
+  amount      Decimal           @db.Decimal(10, 2)
+  description String?           @db.Text
+  timestamp   DateTime          @default(now())
+  direction   String            @default("OUT") // IN, OUT
+  account     FinancialAccount  @relation(fields: [account_id], references: [id])
+  pot         FinancialPot?     @relation(fields: [pot_id], references: [id])
+
+  @@index([account_id])
+  @@index([pot_id])
+}
+
+model YasminMemory {
+  id               Int      @id @default(autoincrement())
+  person_id        Int
+  subject          String   @db.VarChar(255)
+  fact_content     String   @db.Text
+  category         String?  @db.VarChar(100)
+  importance_score Int      @default(3) // 1-5
+  created_at       DateTime @default(now())
+  last_accessed    DateTime @updatedAt
+  person           Person   @relation(fields: [person_id], references: [id])
+
+  @@index([person_id])
+}
+
+model SecureVault {
+  id              Int      @id @default(autoincrement())
+  key_name        String   @unique @db.VarChar(255)
+  encrypted_value String   @db.LongText
+  iv              String   @db.VarChar(255)
+  auth_tag        String   @db.VarChar(255)
+  access_level    String   @default("USER") // USER, MANAGER, ADMIN
+  updated_at      DateTime @updatedAt
+}
+
+model ConversationArchive {
+  id              Int      @id @default(autoincrement())
+  title           String?  @db.VarChar(255)
+  transcript      String   @db.LongText
+  summary         String?  @db.Text
+  mood            String?  @db.VarChar(50)
+  detected_tasks  String?  @db.LongText // JSON array of extracted tasks
+  created_at      DateTime @default(now())
+  audio_path      String?  @db.VarChar(500)
 }
 
 model Schedule {
@@ -624,6 +706,40 @@ enum Message_source {
 }
 
 enum reconciliation_proposals_status {
+  PENDING
+  APPROVED
+  REJECTED
+  COMMITTED
+}
+
+enum Typebot_triggerType {
+  all
+  keyword
+  none
+}
+
+enum Typebot_triggerOperator {
+  contains
+  equals
+  startsWith
+  endsWith
+  regex
+}
+
+enum OpenaiBot_triggerType {
+  all
+  keyword
+  none
+}
+
+enum OpenaiBot_triggerOperator {
+  contains
+  equals
+  startsWith
+  endsWith
+  regex
+}
+ation_proposals_status {
   PENDING
   APPROVED
   REJECTED
